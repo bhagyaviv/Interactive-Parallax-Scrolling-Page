@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Deep Sea Descent — Interactive Parallax Journey</title>
+  <meta name="description" content="Embark on an interactive parallax journey to the deepest trenches of the ocean. Explore marine zones, trigger sonar scans, and discover bioluminescent wonders.">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" crossorigin href="/Interactive-Parallax-Scrolling-Page/assets/index-DiZWO1_0.css">
+</head>
+<body>
+
+  <!-- Background Sound / Sonar Ping Audio Elements (Visual alternative provided) -->
+  <audio id="sonar-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+  <audio id="ambient-ocean" src="https://assets.mixkit.co/active_storage/sfx/2433/2433-84.wav" loop preload="auto"></audio>
+
+  <!-- Ambient Bubble Canvas -->
+  <canvas id="bubble-canvas"></canvas>
+
+  <!-- Dynamic Screen Glitch Overlay for Depth Changes -->
+  <div class="hud-glitch-overlay" id="hud-glitch"></div>
+
+  <!-- Sonar Pulse Effect Container -->
+  <div id="sonar-container"></div>
+
+  <!-- FIXED HUD ELEMENTS -->
+  <header class="main-header">
+    <div class="logo">
+      <span class="pulse-indicator"></span>
+      VÉLA DEEP
+    </div>
+    <div class="system-status">
+      <span class="label font-mono">SYS.STATUS:</span>
+      <span class="value font-mono text-green">ONLINE</span>
+    </div>
+    <button class="audio-toggle" id="audio-btn" aria-label="Toggle Audio">
+      <svg viewBox="0 0 24 24" width="20" height="20">
+        <path fill="currentColor" d="M12 4L9.91 6.09L12 8.18M19 12C19 14.15 17.76 16.03 16 16.9L17.41 18.31C19.58 16.92 21 14.63 21 12C21 7.42 17.62 3.63 13.25 3.06V5.1C16.5 5.64 19 8.53 19 12M3 2.27L1.73 3.54L8.18 10H3V14H7L12 19V13.82L15.35 17.17C14.71 17.62 14 17.96 13.25 18.06V20.1C14.53 19.93 15.72 19.38 16.72 18.54L19.46 21.28L20.73 20L3 2.27M12 5.82V7.82L9.82 5.64M10 10L12 12V10" />
+      </svg>
+      <span>PLAY SOUND</span>
+    </button>
+  </header>
+
+  <!-- Left Sidebar Depth Gauge HUD -->
+  <nav class="depth-gauge-container">
+    <div class="gauge-track">
+      <div class="gauge-progress" id="gauge-progress-bar"></div>
+      <div class="gauge-marker" style="top: 0%;" data-zone="epipelagic">
+        <span class="marker-dot"></span>
+        <span class="marker-label">0m - Sunlight Zone</span>
+      </div>
+      <div class="gauge-marker" style="top: 25%;" data-zone="mesopelagic">
+        <span class="marker-dot"></span>
+        <span class="marker-label">200m - Twilight Zone</span>
+      </div>
+      <div class="gauge-marker" style="top: 50%;" data-zone="bathypelagic">
+        <span class="marker-dot"></span>
+        <span class="marker-label">1,000m - Midnight Zone</span>
+      </div>
+      <div class="gauge-marker" style="top: 75%;" data-zone="abyssopelagic">
+        <span class="marker-dot"></span>
+        <span class="marker-label">4,000m - The Abyss</span>
+      </div>
+      <div class="gauge-marker" style="top: 100%;" data-zone="hadal">
+        <span class="marker-dot"></span>
+        <span class="marker-label">6,000m - Hadal Trenches</span>
+      </div>
+    </div>
+    
+    <!-- Depth & Telemetry HUD Indicator -->
+    <div class="depth-hud">
+      <div class="hud-row">
+        <span class="hud-lbl">DEPTH</span>
+        <span class="hud-val highlight" id="depth-number">0</span>
+        <span class="hud-unit">M</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">TEMP</span>
+        <span class="hud-val" id="temp-number">24.5</span>
+        <span class="hud-unit">°C</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">PRESSURE</span>
+        <span class="hud-val" id="pressure-number">1.0</span>
+        <span class="hud-unit">ATM</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Right Sidebar Diagnostic Logs Console -->
+  <aside class="console-hud">
+    <div class="console-title font-mono">TELEMETRY DATA STREAM</div>
+    <div class="console-log" id="console-logs">
+      <div>[00:00:00] Submersible systems checking...</div>
+      <div class="text-green">[00:00:01] Power core stable at 100%</div>
+      <div>[00:00:02] Hull integrity: Nominal</div>
+      <div class="text-cyan">[00:00:03] Ready for descent. Scroll to launch.</div>
+    </div>
+  </aside>
+
+  <!-- Bottom Submarine Controls (Glassmorphism HUD) -->
+  <div class="dashboard-hud">
+    <div class="hud-panel-left">
+      <button class="hud-btn" id="sonar-ping-btn">
+        <span class="btn-glow"></span>
+        <span class="btn-text">SONAR SCAN (P)</span>
+      </button>
+      <button class="hud-btn" id="cruise-btn">
+        <span class="btn-glow"></span>
+        <span class="btn-text">AUTO DESCENT</span>
+      </button>
+    </div>
+    <div class="hud-panel-center font-mono">
+      <div class="sub-coord">LAT: 11.3733° N | LON: 142.1895° E</div>
+      <div class="sub-loc">MARIANA TRENCH DESCENT FIELD</div>
+    </div>
+    <div class="hud-panel-right">
+      <div class="thruster-speed">
+        <span class="hud-lbl">DESCENT RATE</span>
+        <div class="speed-bars" id="speed-bars-indicator">
+          <span class="bar active"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN SCROLLABLE PARALLAX CONTAINER -->
+  <main class="scroll-container" id="scroll-container">
+
+    <!-- 1. SUNLIGHT ZONE (0m - 200m) -->
+    <section class="depth-section epipelagic" id="epipelagic">
+      <!-- Parallax sky backdrop layer -->
+      <div class="parallax-layer bg-sky" data-speed="0.05"></div>
+      
+      <!-- Sun rays floating down -->
+      <div class="parallax-layer sunrays" data-speed="0.12"></div>
+      
+      <!-- Waves on top -->
+      <div class="parallax-layer waves-top" data-speed="0.3">
+        <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
+          <path fill="#0284c7" fill-opacity="0.8" d="M0,192L48,208C96,224,192,256,288,245.3C384,235,480,181,576,176C672,171,768,213,864,224C960,235,1056,213,1152,181.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          <path fill="#005691" fill-opacity="0.9" d="M0,96L60,112C120,128,240,160,360,160C480,160,600,128,720,138.7C840,149,960,203,1080,213.3C1200,224,1320,192,1380,176L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+        </svg>
+      </div>
+
+      <!-- Sailboat on the surface -->
+      <div class="parallax-layer sailboat" data-speed="0.25">
+        <svg viewBox="0 0 100 100" width="80" height="80">
+          <path d="M10,70 L90,70 L75,85 L25,85 Z" fill="#2d3748" />
+          <path d="M48,15 L48,70 L20,70 Z" fill="#f7fafc" />
+          <path d="M52,25 L52,70 L70,70 Z" fill="#edf2f7" />
+          <line x1="50" y1="10" x2="50" y2="70" stroke="#1a202c" stroke-width="3" />
+        </svg>
+      </div>
+
+      <!-- Section Title & Info (Normal speed scroll content) -->
+      <div class="section-content text-center">
+        <span class="zone-badge">0m - 200m</span>
+        <h1>EPIPELAGIC ZONE</h1>
+        <p class="subtitle">The Sunlight Zone</p>
+        <p class="description">
+          This is where most ocean life thrives. Sunlight feeds phytoplankton, which form the base of the entire oceanic food web.
+        </p>
+        <div class="scroll-prompt font-mono">
+          <span>DESCENT SEQUENCE ACTIVE</span>
+          <div class="arrow-down-pulse">↓</div>
+        </div>
+      </div>
+      
+      <!-- Underwater Reef Silhouette -->
+      <div class="parallax-layer reef" data-speed="0.45">
+        <svg viewBox="0 0 1440 200" preserveAspectRatio="none">
+          <path fill="#021c35" d="M0,150 C120,130 180,180 300,160 C420,140 480,180 600,150 C720,120 780,190 900,170 C1020,150 1080,170 1200,140 C1320,110 1380,160 1440,150 L1440,200 L0,200 Z"></path>
+          <path fill="#011224" d="M0,170 C150,155 200,190 350,175 C500,160 550,195 700,175 C850,155 900,190 1050,175 C1200,160 1300,185 1440,170 L1440,200 L0,200 Z"></path>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 2. TWILIGHT ZONE (200m - 1000m) -->
+    <section class="depth-section mesopelagic" id="mesopelagic">
+      <!-- Darkening ocean ray layers -->
+      <div class="parallax-layer twilight-bg" data-speed="0.08"></div>
+
+      <!-- School of fish silhouettes swimming horizontally -->
+      <div class="parallax-layer fish-school" data-speed="0.28" data-axis="horizontal">
+        <svg viewBox="0 0 400 120" width="300" height="90" fill="#022547" fill-opacity="0.6">
+          <!-- Multi-fish cluster -->
+          <path d="M20,40 C35,35 45,40 50,45 C45,50 35,55 20,50 L10,55 C12,50 12,45 10,40 Z"/>
+          <path d="M80,30 C95,25 105,30 110,35 C105,40 95,45 80,40 L70,45 C72,40 72,35 70,30 Z"/>
+          <path d="M60,60 C75,55 85,60 90,65 C85,70 75,75 60,70 L50,75 C52,70 52,65 50,60 Z"/>
+          <path d="M120,50 C135,45 145,50 150,55 C145,60 135,65 120,60 L110,65 C112,60 112,55 110,50 Z"/>
+          <path d="M160,25 C175,20 185,25 190,30 C185,35 175,40 160,35 L150,40 C152,35 152,30 150,25 Z"/>
+        </svg>
+      </div>
+
+      <!-- Giant Hammerhead Shark silhouette sliding diagonally -->
+      <div class="parallax-layer creature-shark sonar-reveal" data-speed="0.35" id="shark-creature">
+        <div class="creature-hover-hotspot" data-creature="shark">
+          <svg viewBox="0 0 300 100" width="220" height="73" fill="#011b33">
+            <path d="M10,40 C30,35 60,38 75,30 C90,20 100,5 115,10 C110,25 120,35 130,40 C160,40 210,30 230,25 C240,22 250,15 260,20 L280,5 L275,35 L290,60 L265,50 C245,55 220,62 190,65 C170,67 150,78 140,88 C135,92 130,85 135,78 C137,70 135,65 125,60 C100,60 70,55 50,52 C35,55 25,58 10,50 Z" />
+            <!-- Fins -->
+            <path d="M60,38 L85,5 C88,2 92,12 85,25 Z" />
+            <path d="M100,52 L120,80 C115,82 110,80 105,70 Z" />
+          </svg>
+          <div class="pulse-marker"></div>
+        </div>
+      </div>
+
+      <!-- Info text section -->
+      <div class="section-content text-left">
+        <span class="zone-badge">200m - 1,000m</span>
+        <h2>MESOPELAGIC ZONE</h2>
+        <p class="subtitle">The Twilight Zone</p>
+        <p class="description">
+          Sunlight rapidly dissipates here. Temperatures plunge to 4°C, and pressure reaches 100 times surface levels. 
+          Many animals here migrate to the surface at night to feed.
+        </p>
+        <div class="interactive-tip">
+          <span class="icon font-mono">▲</span> <span>Hover over elements or trigger Sonar (P) to inspect local creatures</span>
+        </div>
+      </div>
+      
+      <!-- Fading Depth transition overlay -->
+      <div class="parallax-layer twilight-bottom" data-speed="0.2"></div>
+    </section>
+
+    <!-- 3. MIDNIGHT ZONE (1,000m - 4,000m) -->
+    <section class="depth-section bathypelagic" id="bathypelagic">
+      <div class="parallax-layer midnight-bg" data-speed="0.05"></div>
+
+      <!-- Glowing Jellyfish 1 floating upwards -->
+      <div class="parallax-layer creature-jellyfish-1 sonar-reveal" data-speed="0.4" id="jelly-1">
+        <div class="creature-hover-hotspot" data-creature="jellyfish">
+          <svg viewBox="0 0 100 150" width="90" height="135" class="glow-cyan">
+            <!-- Jelly Cap -->
+            <path d="M10,50 C10,15 90,15 90,50 C90,58 10,58 10,50 Z" fill="rgba(0, 255, 204, 0.4)" stroke="#00ffcc" stroke-width="2"/>
+            <!-- Inner structures -->
+            <path d="M30,50 C30,30 70,30 70,50" fill="none" stroke="#00ffcc" stroke-width="1" stroke-dasharray="2,2"/>
+            <!-- Tentacles -->
+            <path d="M20,55 C15,80 30,110 25,140" fill="none" stroke="#00ffcc" stroke-width="1.5" />
+            <path d="M35,55 C38,85 28,105 38,135" fill="none" stroke="#00ffcc" stroke-dasharray="2,2" stroke-width="1" />
+            <path d="M50,55 C45,75 55,105 50,145" fill="none" stroke="#00ffcc" stroke-width="2" />
+            <path d="M65,55 C70,80 60,110 68,138" fill="none" stroke="#00ffcc" stroke-dasharray="2,2" stroke-width="1" />
+            <path d="M80,55 C75,85 85,115 80,142" fill="none" stroke="#00ffcc" stroke-width="1.5" />
+          </svg>
+          <div class="pulse-marker glow-cyan"></div>
+        </div>
+      </div>
+
+      <!-- Glowing Jellyfish 2 -->
+      <div class="parallax-layer creature-jellyfish-2 sonar-reveal" data-speed="0.55" id="jelly-2">
+        <div class="creature-hover-hotspot" data-creature="jellyfish-purple">
+          <svg viewBox="0 0 100 150" width="70" height="105" class="glow-magenta">
+            <path d="M15,45 C15,15 85,15 85,45 C85,52 15,52 15,45 Z" fill="rgba(255, 0, 127, 0.3)" stroke="#ff007f" stroke-width="1.8"/>
+            <path d="M25,50 C20,75 35,100 30,125" fill="none" stroke="#ff007f" stroke-width="1.5" />
+            <path d="M50,50 C45,70 55,95 50,130" fill="none" stroke="#ff007f" stroke-width="2" />
+            <path d="M75,50 C70,80 80,105 75,128" fill="none" stroke="#ff007f" stroke-width="1.5" />
+          </svg>
+          <div class="pulse-marker glow-magenta"></div>
+        </div>
+      </div>
+
+      <!-- Submersible drone drifting in background -->
+      <div class="parallax-layer explorer-drone" data-speed="0.18">
+        <svg viewBox="0 0 160 100" width="130" height="81">
+          <!-- Body -->
+          <rect x="30" y="30" width="100" height="40" rx="20" fill="#f59e0b" stroke="#000" stroke-width="2" />
+          <!-- Propellers -->
+          <rect x="130" y="40" width="10" height="20" fill="#374151" />
+          <line x1="140" y1="30" x2="140" y2="70" stroke="#111827" stroke-width="3" />
+          <!-- Camera/Light -->
+          <circle cx="35" cy="50" r="10" fill="#1e293b" />
+          <circle cx="35" cy="50" r="5" fill="#3b82f6" class="drone-lens" />
+          <!-- Light ray -->
+          <polygon points="35,50 -20,0 -20,100" fill="rgba(251, 191, 36, 0.15)" />
+        </svg>
+      </div>
+
+      <!-- Info text section -->
+      <div class="section-content text-right">
+        <span class="zone-badge">1,000m - 4,000m</span>
+        <h2>BATHYPELAGIC ZONE</h2>
+        <p class="subtitle">The Midnight Zone</p>
+        <p class="description">
+          A world of total, absolute darkness. No light penetrates here. 
+          The only illumination comes from creatures using chemical reactions—bioluminescence—to lure prey, find mates, or escape predators.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. THE ABYSS (4,000m - 6,000m) -->
+    <section class="depth-section abyssopelagic" id="abyssopelagic">
+      <div class="parallax-layer abyss-bg" data-speed="0.05"></div>
+
+      <!-- Hydrothermal vent spewing particles -->
+      <div class="parallax-layer hydrothermal-vent sonar-reveal" data-speed="0.32" id="hydro-vent">
+        <div class="creature-hover-hotspot" data-creature="vent">
+          <svg viewBox="0 0 200 300" width="180" height="270" fill="#18131d">
+            <!-- Vent body -->
+            <path d="M40,300 L70,120 L80,100 L120,100 L130,120 L160,300 Z" fill="#2d1c3a" stroke="#362247" stroke-width="3"/>
+            <!-- Left secondary pipe -->
+            <path d="M10,300 L30,220 L50,210 L55,230 L50,300 Z" fill="#20152b" />
+            <!-- Smoke points (Animated in CSS) -->
+            <ellipse cx="100" cy="80" rx="30" ry="15" fill="rgba(69, 56, 84, 0.4)" class="vent-smoke-1"/>
+            <ellipse cx="100" cy="50" rx="50" ry="25" fill="rgba(54, 43, 66, 0.3)" class="vent-smoke-2"/>
+            <circle cx="100" cy="95" r="8" fill="#e11d48" class="vent-glow-core" />
+          </svg>
+          <div class="pulse-marker glow-rose"></div>
+        </div>
+      </div>
+
+      <!-- Giant Squid swimming diagonally -->
+      <div class="parallax-layer creature-squid sonar-reveal" data-speed="0.45" id="squid-creature">
+        <div class="creature-hover-hotspot" data-creature="squid">
+          <svg viewBox="0 0 200 300" width="140" height="210" fill="#4c0519" fill-opacity="0.8">
+            <!-- Mantle/Head -->
+            <path d="M100,20 C70,60 80,140 100,165 C120,140 130,60 100,20 Z" />
+            <!-- Fins -->
+            <path d="M100,20 L75,45 L100,75 L125,45 Z" />
+            <!-- Eyes -->
+            <circle cx="90" cy="155" r="4" fill="#38bdf8" />
+            <circle cx="110" cy="155" r="4" fill="#38bdf8" />
+            <!-- Tentacles -->
+            <path d="M90,165 C85,200 95,240 90,280" fill="none" stroke="#4c0519" stroke-width="3.5" />
+            <path d="M96,165 C92,195 102,235 98,275" fill="none" stroke="#4c0519" stroke-width="2.5" />
+            <path d="M104,165 C108,195 98,235 102,275" fill="none" stroke="#4c0519" stroke-width="2.5" />
+            <path d="M110,165 C115,200 105,240 110,280" fill="none" stroke="#4c0519" stroke-width="3.5" />
+            <!-- Feeding tentacles (Long) -->
+            <path d="M85,165 C70,210 90,260 80,300" fill="none" stroke="#4c0519" stroke-width="2.5" stroke-dasharray="3,3" />
+            <path d="M115,165 C130,210 110,260 120,300" fill="none" stroke="#4c0519" stroke-width="2.5" stroke-dasharray="3,3" />
+          </svg>
+          <div class="pulse-marker glow-rose"></div>
+        </div>
+      </div>
+
+      <!-- Info text section -->
+      <div class="section-content text-left">
+        <span class="zone-badge">4,000m - 6,000m</span>
+        <h2>ABYSSOPELAGIC ZONE</h2>
+        <p class="subtitle">The Abyss</p>
+        <p class="description">
+          The name comes from the Greek word meaning "bottomless". 
+          Water temperatures hover just above freezing at 0°C. Heavy mineral vents spew superheated toxic water, supporting highly specialized bacteria and strange ecosystems.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. THE HADAL TRENCHES (6,000m+) -->
+    <section class="depth-section hadal" id="hadal">
+      <div class="parallax-layer hadal-bg" data-speed="0.05"></div>
+
+      <!-- Glowing Anglerfish swimming -->
+      <div class="parallax-layer creature-angler sonar-reveal" data-speed="0.48" id="angler-creature">
+        <div class="creature-hover-hotspot" data-creature="anglerfish">
+          <svg viewBox="0 0 200 150" width="160" height="120" class="glow-neon-green">
+            <!-- Anglerfish body -->
+            <path d="M170,80 C170,30 110,10 80,30 C50,15 20,40 10,75 C2,105 25,130 60,135 C90,130 140,110 170,80 Z" fill="#111827" stroke="#10b981" stroke-width="2" />
+            <!-- Tail -->
+            <path d="M170,80 L195,60 L190,80 L195,100 Z" fill="#10b981" />
+            <!-- Teeth / Mouth -->
+            <path d="M10,80 C15,105 50,115 65,105 L55,95 L45,102 L35,90 L25,98 L18,85 Z" fill="#f3f4f6" />
+            <path d="M10,80 L20,70 L25,75 L35,68 L42,75 L50,65 L55,75 L60,82 Z" fill="#f3f4f6" />
+            <!-- Eye (Blank/Blind) -->
+            <circle cx="45" cy="50" r="6" fill="#9ca3af" stroke="#4b5563" stroke-width="1.5" />
+            <!-- Esca / Light lure -->
+            <path d="M75,30 C85,-5 10,-2 25,-15" fill="none" stroke="#10b981" stroke-width="2" />
+            <circle cx="25" cy="-15" r="8" fill="#a7f3d0" class="angler-lure-glow" />
+          </svg>
+          <div class="pulse-marker glow-green"></div>
+        </div>
+      </div>
+
+      <!-- Bioluminescent Ancient Ruins on the Ocean Bed -->
+      <div class="parallax-layer hadal-ruins sonar-reveal" data-speed="0.6" id="ancient-ruins">
+        <div class="creature-hover-hotspot" data-creature="ruins">
+          <svg viewBox="0 0 800 400" width="700" height="350">
+            <!-- Columns and foundations with neon glow contours -->
+            <!-- Base rocks -->
+            <path d="M50,400 L120,320 L160,330 L220,300 L300,320 L450,290 L600,340 L700,320 L800,400 Z" fill="#090514" />
+            <!-- Fallen Pillar -->
+            <rect x="180" y="320" width="160" height="30" rx="5" transform="rotate(15 180 320)" fill="#0d081b" stroke="#d946ef" stroke-width="1.5" />
+            <!-- Standing Arch 1 -->
+            <rect x="420" y="160" width="30" height="150" fill="#0d081b" stroke="#d946ef" stroke-width="1.5" />
+            <rect x="540" y="160" width="30" height="150" fill="#0d081b" stroke="#d946ef" stroke-width="1.5" />
+            <rect x="390" y="130" width="210" height="35" rx="3" fill="#090514" stroke="#d946ef" stroke-width="2" />
+            <!-- Ruined Arch 2 -->
+            <rect x="80" y="220" width="25" height="120" fill="#0d081b" stroke="#d946ef" stroke-width="1.5" />
+            <rect x="70" y="200" width="45" height="20" fill="#090514" stroke="#d946ef" stroke-width="1.5" />
+            <!-- Glowing Glyphs / Runes -->
+            <path d="M435,180 L435,210 M430,195 L440,195" stroke="#d946ef" stroke-width="2" stroke-linecap="round" />
+            <path d="M435,240 C430,240 430,260 435,260" fill="none" stroke="#d946ef" stroke-width="2" stroke-linecap="round" />
+            <circle cx="555" cy="200" r="4" fill="none" stroke="#d946ef" stroke-width="2" />
+            <path d="M555,230 L555,260 M550,245 L560,245" stroke="#d946ef" stroke-width="2" />
+          </svg>
+          <div class="pulse-marker glow-pink"></div>
+        </div>
+      </div>
+
+      <!-- Underwater Deep-Sea Research Station -->
+      <div class="parallax-layer research-base" data-speed="0.75" id="station-base">
+        <svg viewBox="0 0 400 250" width="320" height="200">
+          <!-- Main dome -->
+          <path d="M50,180 C50,90 150,90 150,180 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+          <path d="M55,180 C55,100 145,100 145,180 Z" fill="rgba(56, 189, 248, 0.1)" />
+          <!-- Dome grid lines -->
+          <path d="M100,90 L100,180" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3,3" />
+          <!-- Small dome -->
+          <path d="M180,180 C180,120 250,120 250,180 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+          <path d="M185,180 C185,130 245,130 245,180 Z" fill="rgba(56, 189, 248, 0.1)" />
+          <!-- Connective corridor -->
+          <rect x="140" y="150" width="50" height="30" fill="#334155" stroke="#38bdf8" stroke-width="1.5" />
+          <line x1="140" y1="165" x2="190" y2="165" stroke="#38bdf8" stroke-width="1" />
+          <!-- Base foundation struts -->
+          <rect x="30" y="180" width="240" height="15" fill="#0f172a" />
+          <line x1="60" y1="195" x2="40" y2="240" stroke="#64748b" stroke-width="4" />
+          <line x1="140" y1="195" x2="140" y2="240" stroke="#64748b" stroke-width="4" />
+          <line x1="220" y1="195" x2="240" y2="240" stroke="#64748b" stroke-width="4" />
+          <!-- Flashing safety beacon lights -->
+          <circle cx="100" cy="85" r="5" fill="#ef4444" class="base-light-red" />
+          <circle cx="215" cy="115" r="4" fill="#3b82f6" class="base-light-blue" />
+        </svg>
+      </div>
+
+      <!-- Info text section -->
+      <div class="section-content text-center">
+        <span class="zone-badge">6,000m - 10,994m</span>
+        <h2>THE HADAL ZONE</h2>
+        <p class="subtitle">The Hadal Trenches</p>
+        <p class="description">
+          Named after Hades, the Greek god of the underworld. The trenches are steep V-shaped canyons. 
+          At the bottom of the Mariana Trench, the pressure is a crushing 1,086 bar—equivalent to an elephant standing on your thumb.
+        </p>
+        
+        <!-- End Journey & Ascend Action -->
+        <div class="completion-box font-mono">
+          <h3>CHALLENGE COMPLETED</h3>
+          <p>You have reached the bottom of the world: Challenger Deep (-10,994m).</p>
+          <button class="resurface-btn" id="resurface-btn">
+            <span class="btn-glow"></span>
+            <span class="btn-text">INITIATE RAPID ASCENT</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- INTERACTIVE SPECIMEN/CREATURE INFO DIALOG (MODAL CARDS) -->
+  <div class="info-card-overlay" id="creature-modal">
+    <div class="info-card">
+      <button class="close-card" id="close-modal-btn">&times;</button>
+      <div class="card-glow-border"></div>
+      <div class="card-header font-mono">
+        <span class="specimen-id">SPECIMEN ID: <span id="modal-id">SHRK-01</span></span>
+        <span class="specimen-zone" id="modal-zone">TWILIGHT ZONE</span>
+      </div>
+      <div class="card-content">
+        <h2 id="modal-name">Sphyrna lewini</h2>
+        <h3 id="modal-common-name">Scalloped Hammerhead Shark</h3>
+        <hr class="card-divider" />
+        <p class="card-desc" id="modal-description">
+          Detailed information about the creature.
+        </p>
+        <div class="card-stats font-mono">
+          <div class="stat-row">
+            <span class="stat-lbl">MAX DEPTH:</span>
+            <span class="stat-val text-cyan" id="modal-stat-depth">1,000 m</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">BIOLUMINESCENCE:</span>
+            <span class="stat-val" id="modal-stat-bio">NONE</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">SURVIVAL MECHANISM:</span>
+            <span class="stat-val" id="modal-stat-mechanism">Ampullae of Lorenzini (Electroreceptors)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
